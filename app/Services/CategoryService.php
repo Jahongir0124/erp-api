@@ -24,7 +24,7 @@ class CategoryService
                 ->orWhere('description', 'like', '%'. $data->search . '%');
             }
 
-        return $query->latest()->paginate(10);
+        return $query->latest()->get();
     }
 
     public function update(array $data, Category $category)

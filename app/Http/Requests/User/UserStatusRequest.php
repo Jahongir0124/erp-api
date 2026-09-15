@@ -5,10 +5,9 @@ namespace App\Http\Requests\User;
 use App\Enums\UserStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
-class UserUpdateRequest extends FormRequest
+class UserStatusRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,26 +24,11 @@ class UserUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $user = $this->route('user');
         return [
-
-            'name' => [
-                'required',
-                'string',
-                Rule::unique('users', 'name')->ignore($user->id)
-            ],
-            'email' => [
-                'required',
-                'string',
-                Rule::unique('users', 'email')->ignore($user->id)
-            ],
-            'password' => [
-                'nullable',
-                'string',
-                'min:8'
-            ],
-           
-           
+            'status' => [
+            'required',
+            new Enum(UserStatus::class)
+        ]
         ];
     }
 }

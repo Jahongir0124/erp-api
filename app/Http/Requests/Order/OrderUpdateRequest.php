@@ -1,14 +1,12 @@
 <?php
 
-namespace App\Http\Requests\User;
+namespace App\Http\Requests\Order;
 
-use App\Enums\UserStatus;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\Rules\Enum;
 
-class UserUpdateRequest extends FormRequest
+class OrderUpdateRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -25,26 +23,29 @@ class UserUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        $user = $this->route('user');
-        return [
 
-            'name' => [
+        return [
+            "customer_id" => [
                 'required',
-                'string',
-                Rule::unique('users', 'name')->ignore($user->id)
+                'integer',
+                'exists:customers,id'
             ],
-            'email' => [
+            'items' => [
                 'required',
-                'string',
-                Rule::unique('users', 'email')->ignore($user->id)
+                'array',
+                'min:1'
             ],
-            'password' => [
-                'nullable',
-                'string',
-                'min:8'
+            'items.*.product_id' => [
+                'required',
+                'integer',
+                'exists:products,id'
             ],
-           
-           
+
+            'items.*.quantity' => [
+                'required',
+                'integer',
+                'min:1'
+            ]
         ];
     }
 }

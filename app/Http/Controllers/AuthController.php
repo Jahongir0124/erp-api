@@ -12,12 +12,16 @@ use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+
+
     public function me(Request $request)
     {
         return response()->json([
-            'user' => $request->user()->pluck('name'),
+            'user' => $request->user(),
             'roles' => $request->user()->getRoleNames(),
-            'permissions' => $request->user()->getAllPermissions()->pluck('name')
+            'permissions' => $request->user()
+                ->getAllPermissions()
+                ->pluck('name')
         ]);
     }
     public function login(LoginRequest $request)
@@ -30,14 +34,17 @@ class AuthController extends Controller
             ], 401);
         }
 
-        if ($user->status !== UserStatus::ACTIVE)
-            {
-                return response()->json([
-                    'msg' => 'Account is not active'
-                ]);
-            }
+        if ($user->status !== UserStatus::ACTIVE) {
+            return response()->json([
+                'msg' => 'Account is not active'
+            ]);
+        }
         $user->tokens()->delete();
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = $user->createToken(
+            'api-token',
+            ['*'],
+            now()->addHours(2)
+            )->plainTextToken;
         return response()->json([
             'token' => $token
         ]);
@@ -51,3 +58,4 @@ class AuthController extends Controller
         ]);
     }
 }
+

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\DTOs\UserData;
+use App\Http\Requests\User\UpdateRoleRequest;
+use App\Http\Requests\User\UserStatusRequest;
 use App\Http\Requests\User\UserStoreRequest;
 use App\Http\Requests\User\UserUpdateRequest;
 use App\Http\Resources\UserResource;
@@ -49,7 +52,8 @@ class UserController extends Controller implements HasMiddleware
 
     public function store(UserStoreRequest $request)
     {
-        $user = $this->userService->store($request->validated());
+        $dto = UserData::fromArray($request->validated());
+        $user = $this->userService->store($dto);
         return new UserResource($user);
     }
 
@@ -62,6 +66,8 @@ class UserController extends Controller implements HasMiddleware
         User $user
         )
     {
+        
+        $this->authorize('update', $user);
         return new UserResource($this->userService->update($user, $request->validated()));
     }
 
@@ -88,4 +94,29 @@ class UserController extends Controller implements HasMiddleware
             'msg' => 'User permanently deleted'
         ]);
     }
+
+    public function updateRole(
+        UpdateRoleRequest $request,
+        User $user
+    )
+    {
+        $this->authorize('updateRole', $user);
+        $user->syncRoles($request->role);
+        return new UserResource($user->fresh());
+    }
+
+    public function updateStatus(
+        UserStatusRequest $request,
+        User $user
+    )
+    {
+       
+        $this->authorize('updateStatus', $user);
+        $user->update([
+            'status' => $request->validated()['status']
+        ]);
+        return new UserResource($user->fresh());
+    }
+
+    
 }

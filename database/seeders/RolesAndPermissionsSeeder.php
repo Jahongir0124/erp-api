@@ -19,6 +19,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'create-user',
             'update-user',
             'delete-user',
+            'change-status-user',
+            'change-role-user',
 
             'view-product',
             'create-product',
@@ -28,7 +30,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'view-category',
             'create-category',
             'update-category',
-            'delete-category'
+            'delete-category',
+
+            'view-order',
+            'create-order',
+            'update-order',
+            'delete-order',
+            'confirm-order',
+            'cancel-order',
+            'complete-order',
+            'change-order-status'
         ];
 
 
@@ -46,12 +57,32 @@ class RolesAndPermissionsSeeder extends Seeder
         $manager = Role::firstOrCreate([
             'name' => 'manager'
         ]);
+        $seller = Role::firstOrCreate([
+            'name' => 'seller'
+        ]);
 
         $super_admin->givePermissionTo(Permission::all());
         $manager->givePermissionTo([
             'view-category',
             'create-category',
-            'update-category'
+            'update-category',
+            'update-user',
+             'view-user',
+             'view-order',
+             'create-order',
+             'update-order',
+             'confirm-order',
+             'cancel-order',
+             'complete-order',
+             'change-order-status'
+
+            
+        ]);
+        $seller->givePermissionTo([
+            'view-order',
+            'create-order',
+            'update-order',
+            'cancel-order'
         ]);
 
         
