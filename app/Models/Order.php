@@ -37,11 +37,11 @@ class Order extends Model
     }
     public function confirmer()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'confirmed_by');
     }
     public function canceller()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'cancelled_by');
     }
 
     public function items()

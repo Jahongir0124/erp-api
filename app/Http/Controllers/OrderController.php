@@ -35,14 +35,26 @@ class OrderController extends Controller implements HasMiddleware
             new Middleware(
                 'permission:confirm-order',
                 only: ['confirm']
+            ),
+            new Middleware(
+                'permission:complete-order',
+                only: ['complete']
+            ),
+            new Middleware(
+                'permission:cancel-order-pending',
+                only: ['cancelPending']
+            ),
+            new Middleware(
+                'permission:cancel-order-confirmed',
+                only: ['cancelConfirmed']
             )
         ];
     }
     public function __construct(protected readonly OrderService $orderService) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $orders = $this->orderService->index();
+        $orders = $this->orderService->index($request);
         return OrderResource::collection($orders);
     }
     public function store(OrderStoreRequest $request)
@@ -75,9 +87,37 @@ class OrderController extends Controller implements HasMiddleware
     public function confirm(Order $order)
     {
         $this->authorize('confirm', $order);
+        $orderConfirmed = $this->orderService->confirm($order);
 
-        $this->orderService->confirm($order);
-
+        return new OrderResource(
+            $orderConfirmed->load([
+                'customer:id,name',
+                'creator:id,name',
+                'items.product:id,name,sku,price'
+            ])
+        );
         
+    }
+
+    public function cancelPending(Order $order)
+    {
+        $this->authorize('cancelPending', $order);
+        $order = $this->orderService->cancelPending($order);
+        return new OrderResource($order);
+    }
+
+
+    public function cancelConfirmed(Order $order)
+    {
+        $this->authorize('cancelConfirmed', $order);
+        $order = $this->orderService->cancelConfirmed($order);
+        return new OrderResource($order);
+    }
+
+    public function complete(Order $order)
+    {
+        $this->authorize('complete', $order);
+        $order = $this->orderService->complete($order);
+        return new OrderResource($order);
     }
 }

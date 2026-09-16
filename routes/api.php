@@ -71,6 +71,26 @@ Route::middleware('auth:sanctum')->group(function () {
         );
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+
+    Route::patch(
+        'orders/{order}/confirm',
+        [OrderController::class, 'confirm']
+    );
+    Route::patch(
+        'orders/{order}/pending/cancel',
+        [OrderController::class, 'cancelPending']
+    );
+    Route::patch(
+        'orders/{order}/confirmed/cancel',
+        [OrderController::class, 'cancelConfirmed']
+    );
+    Route::patch(
+        'orders/{order}/complete',
+        [OrderController::class, 'complete']
+    );
+});
+
 
 
 

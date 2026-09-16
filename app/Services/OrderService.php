@@ -12,6 +12,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 
@@ -20,7 +21,7 @@ class OrderService
 {
 
 
-    public function index()
+    public function index(Request $request)
     {
 
         $query = Order::query()
@@ -32,8 +33,24 @@ class OrderService
             {
                 $query->where('created_by', auth()->id());
             }
+
+        if ($request->filled('search'))
+            {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('order_number', 'like', "%{$search}%")
+                    ->orWhere('total_amount', 'like', "%{$search}%")
+                    ->orWhereHas('customer', function($q) use ($search){
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+                });
+            }
         
-        return $query->latest()->get();
+        if ($request->filled('status'))
+            {
+                $query->where('status', $request->status);
+            }
+        return $query->latest()->paginate(10);
     }
     public function storeOrder(OrderData $dto): Order
     {
@@ -147,14 +164,21 @@ class OrderService
 
     public function confirm(Order $order): Order
     {
+        
         return DB::transaction(function () use ($order) {
 
             $order->load('items.product');
 
+            $productIds = collect($order->items)->pluck('product_id')->unique();
+
+            $products = Product::query()
+            ->whereIn('id', $productIds)
+            ->lockForUpdate()
+            ->get()->keyBy('id');
+            
             foreach($order->items as $item)
                 {
-                    $product = $item->product;
-
+                    $product = $products->get($item->product_id);
                     if ($product->quantity < $item->quantity)
                         {
                             throw ValidationException::withMessages([
@@ -163,10 +187,10 @@ class OrderService
                         }
                 }
 
+
             foreach($order->items as $item)
                 {
-                    $product = $item->product;
-
+                    $product = $products->get($item->product_id);
                     $product->decrement('quantity', $item->quantity);
                 }
 
@@ -176,7 +200,47 @@ class OrderService
                 'confirmed_at' => now()
             ]);
 
-            return $order;
+            return $order->fresh();
         });
+    }
+
+    public function cancelPending(Order $order): Order
+    {
+        $order->update([
+            'cancelled_by' => auth()->id(),
+            'status' => OrderStatus::CANCELLED,
+            'cancelled_at' => now()
+        ]);
+        return $order->fresh();
+    }
+
+    public function cancelConfirmed(Order $order): Order
+    {
+        
+        $order->load('items.product');
+        return DB::transaction(function () use ($order) {
+
+            foreach($order->items as $item)
+                {
+                    $item->product->increment('quantity', $item->quantity); 
+                }
+            $order->update([
+                'cancelled_by' => auth()->id(),
+                'status' => OrderStatus::CANCELLED,
+                'cancelled_at' => now()
+            ]);
+            return $order->fresh('items.product');
+        });
+        
+    }
+
+    public function complete(Order $order)
+    {
+        $order->update([
+            'completed_at' => now(),
+            'status' => OrderStatus::COMPLETED
+        ]);
+
+        return $order->fresh();
     }
 }

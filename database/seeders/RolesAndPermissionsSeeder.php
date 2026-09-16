@@ -37,9 +37,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'update-order',
             'delete-order',
             'confirm-order',
-            'cancel-order',
             'complete-order',
-            'change-order-status'
+            'change-order-status',
+            'cancel-order-pending',
+            'cancel-order-confirmed'
         ];
 
 
@@ -62,27 +63,29 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         $super_admin->givePermissionTo(Permission::all());
-        $manager->givePermissionTo([
+        $manager->syncPermissions([
             'view-category',
             'create-category',
             'update-category',
-            'update-user',
              'view-user',
              'view-order',
              'create-order',
              'update-order',
              'confirm-order',
-             'cancel-order',
+             'cancel-order-pending',
+             'cancel-order-confirmed',
              'complete-order',
-             'change-order-status'
+             'change-order-status',
+             'view-product'
 
             
         ]);
-        $seller->givePermissionTo([
+        $seller->syncPermissions([
             'view-order',
             'create-order',
             'update-order',
-            'cancel-order'
+            'cancel-order-pending',
+            'view-product'
         ]);
 
         

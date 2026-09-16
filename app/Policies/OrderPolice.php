@@ -64,9 +64,25 @@ class OrderPolice
         return false;
     }
 
-    public function confirm(Order $order): bool
+    public function confirm(User $user, Order $order): bool
     {
         return $order->status === OrderStatus::PENDING;
+    }
+
+    public function cancelPending(User $user, Order $order): bool
+    {
+        return $order->status === OrderStatus::PENDING;
+    }
+
+    public function cancelConfirmed(User $user, Order $order): bool
+    {
+        
+        return $order->status === OrderStatus::CONFIRMED;
+    }
+
+    public function complete(User $user, Order $order): bool
+    {
+        return $order->status === OrderStatus::CONFIRMED;
     }
 
     /**
