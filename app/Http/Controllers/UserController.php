@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\DTOs\UserData;
 use App\Http\Requests\User\UpdateRoleRequest;
+use App\Http\Requests\User\UserRequest;
 use App\Http\Requests\User\UserStatusRequest;
 use App\Http\Requests\User\UserStoreRequest;
 use App\Http\Requests\User\UserUpdateRequest;
@@ -45,7 +46,7 @@ class UserController extends Controller implements HasMiddleware
 
 
 
-    public function index(Request $request)
+    public function index(UserRequest $request)
     {
         return UserResource::collection($this->userService->index($request));
     }

@@ -107,10 +107,17 @@ class OrderController extends Controller implements HasMiddleware
     }
 
 
-    public function cancelConfirmed(Order $order)
+    public function cancelConfirmed(Order $order, Request $request)
     {
+        $request = $request->validate([
+            'reason' => [
+                'required',
+                'string',
+                'max:1000'
+            ]
+        ]);
         $this->authorize('cancelConfirmed', $order);
-        $order = $this->orderService->cancelConfirmed($order);
+        $order = $this->orderService->cancelConfirmed($order, $request['reason']);
         return new OrderResource($order);
     }
 

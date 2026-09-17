@@ -3,6 +3,7 @@
 
 namespace app\Services;
 
+use App\Http\Requests\User\UserRequest;
 use App\Models\Product;
 
 use Illuminate\Support\Str;
@@ -16,23 +17,24 @@ class ProductService
         return $product->fresh();
     }
 
-    public function index(object $data)
+    public function index(UserRequest $request)
     {
         $query = Product::query();
 
-        if ($data->filled('search'))
+        if ($request->filled('search'))
             {
-                $search = $data->search;
+                $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
                     ->orWhere('sku', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('price', 'like', "%{$search}%");
                 });
             }
-        if ($data->filled('category'))
+        if ($request->filled('category'))
             {
-                $query->whereHas('category', function ($q) use($data) {
-                    $q->where('name', $data->category);
+                $query->whereHas('category', function ($q) use($request) {
+                    $q->where('name', $request->category);
                 });
             }
 
@@ -42,13 +44,9 @@ class ProductService
 
     public function store(array $data)
     {
-        
         $product = Product::create($data);
         return $product;
-
     }
-
-
     public function destroy(Product $product): void
     {
         $product->delete();

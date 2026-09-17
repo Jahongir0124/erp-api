@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\InventoryHistoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
@@ -54,6 +56,16 @@ Route::middleware('auth:sanctum')->group(function() {
 Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('customers', CustomerController::class);
 });
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('inventories', InventoryHistoryController::class);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::apiResource('inventory', InventoryController::class);
+});
+
 
 Route::middleware('auth:sanctum')->group(function () {
 

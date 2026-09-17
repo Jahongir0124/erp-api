@@ -33,4 +33,9 @@ class Product extends Model
     {
         return $this->hasMany(ProductImage::class);
     }
+
+    public function inventoryHistories()
+    {
+        return $this->hasMany(InventoryHistory::class);
+    }
 }

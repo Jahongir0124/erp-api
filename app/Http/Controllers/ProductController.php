@@ -4,13 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Product\ProductStoreRequest;
 use App\Http\Requests\Product\ProductUpdateRequest;
+use App\Http\Requests\User\UserRequest;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ProductService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
 use Illuminate\Routing\Controllers\Middleware;
-use Illuminate\Support\ProcessUtils;
 use Override;
 
 
@@ -41,7 +41,7 @@ class ProductController extends Controller implements HasMiddleware
         ];
     }
 
-    public function index(Request $request)
+    public function index(UserRequest $request)
     {
         return ProductResource::collection($this->productService->index($request));
     }

@@ -53,4 +53,9 @@ class Order extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function inventoryHistories()
+    {
+        return $this->belongsTo(InventoryHistory::class);
+    }
 }

@@ -29,27 +29,24 @@ class OrderService
                 "customer:id,name",
                 "creator:id,name"
             ]);
-        if (!auth()->user()->hasAnyRole(['super-admin', 'manager']))
-            {
-                $query->where('created_by', auth()->id());
-            }
+        if (!auth()->user()->hasAnyRole(['super-admin', 'manager'])) {
+            $query->where('created_by', auth()->id());
+        }
 
-        if ($request->filled('search'))
-            {
-                $search = $request->search;
-                $query->where(function ($q) use ($search) {
-                    $q->where('order_number', 'like', "%{$search}%")
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('order_number', 'like', "%{$search}%")
                     ->orWhere('total_amount', 'like', "%{$search}%")
-                    ->orWhereHas('customer', function($q) use ($search){
+                    ->orWhereHas('customer', function ($q) use ($search) {
                         $q->where('name', 'like', "%{$search}%");
                     });
-                });
-            }
-        
-        if ($request->filled('status'))
-            {
-                $query->where('status', $request->status);
-            }
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
         return $query->latest()->paginate(10);
     }
     public function storeOrder(OrderData $dto): Order
@@ -66,36 +63,35 @@ class OrderService
 
         foreach ($dto->items as $item) {
             $product = $products->get($item['product_id']);
-            
+
             $subtotal = $product->price * $item['quantity'];
 
             $totalAmount += $subtotal;
         }
 
-        $order = DB::transaction(function () use (
-            $dto,
-            $products,
-            $totalAmount
-        )
-        {
-            $order = Order::create([
-                'customer_id' => $dto->customerId,
-                'created_by' => auth()->id(),
-                'total_amount' => $totalAmount,
-                'status' => OrderStatus::PENDING
-            ]);
+        $order = DB::transaction(
+            function () use (
+                $dto,
+                $products,
+                $totalAmount
+            ) {
+                $order = Order::create([
+                    'customer_id' => $dto->customerId,
+                    'created_by' => auth()->id(),
+                    'total_amount' => $totalAmount,
+                    'status' => OrderStatus::PENDING
+                ]);
 
-            $order->order_number = 'ORD-'. str_pad(
-                $order->id,
-                6,
-                '0',
-                STR_PAD_LEFT
-            );
-            $order->save();
+                $order->order_number = 'ORD-' . str_pad(
+                    $order->id,
+                    6,
+                    '0',
+                    STR_PAD_LEFT
+                );
+                $order->save();
 
 
-            foreach ($dto->items as $item)
-                {
+                foreach ($dto->items as $item) {
                     $product = $products->get($item['product_id']);
                     $quantity = $item['quantity'];
                     $subtotal = $product->price * $quantity;
@@ -107,9 +103,9 @@ class OrderService
                         'subtotal' => $subtotal
                     ]);
                 }
-            return $order;
-        }
-        
+                return $order;
+            }
+
         );
         return $order->load('items.product');
     }
@@ -121,14 +117,13 @@ class OrderService
 
         $totalAmount = 0;
 
-        foreach($data->items as $item)
-            {
-                $product = $products->get($item['product_id']);
-                $subtotal = $product->price * $item['quantity'];
-                $totalAmount += $subtotal;
-            }
+        foreach ($data->items as $item) {
+            $product = $products->get($item['product_id']);
+            $subtotal = $product->price * $item['quantity'];
+            $totalAmount += $subtotal;
+        }
 
-        
+
 
         $order = DB::transaction(function () use ($data, $order, $totalAmount, $products) {
 
@@ -138,33 +133,28 @@ class OrderService
             ]);
 
             $order->items()->delete();
-            
-            foreach ($data->items as $item)
-                {
-                    $product = $products->get($item['product_id']);
-                    $subtotal = $product->price * $item['quantity'];
 
-                    $order->items()->create([
-                        'product_id' => $product->id,
-                        'quantity' => $item['quantity'],
-                        'price' => $product->price,
-                        'subtotal' => $subtotal
-                    ]);
+            foreach ($data->items as $item) {
+                $product = $products->get($item['product_id']);
+                $subtotal = $product->price * $item['quantity'];
 
-                }
+                $order->items()->create([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'price' => $product->price,
+                    'subtotal' => $subtotal
+                ]);
+            }
             return $order;
-
         });
 
         return $order->load('items.product');
-
-        
     }
 
 
     public function confirm(Order $order): Order
     {
-        
+
         return DB::transaction(function () use ($order) {
 
             $order->load('items.product');
@@ -172,27 +162,36 @@ class OrderService
             $productIds = collect($order->items)->pluck('product_id')->unique();
 
             $products = Product::query()
-            ->whereIn('id', $productIds)
-            ->lockForUpdate()
-            ->get()->keyBy('id');
-            
-            foreach($order->items as $item)
-                {
-                    $product = $products->get($item->product_id);
-                    if ($product->quantity < $item->quantity)
-                        {
-                            throw ValidationException::withMessages([
-                                'product' => "Not enough stock {$product->name}"
-                            ]);
-                        }
+                ->whereIn('id', $productIds)
+                ->lockForUpdate()
+                ->get()->keyBy('id');
+
+            foreach ($order->items as $item) {
+                $product = $products->get($item->product_id);
+                if ($product->quantity < $item->quantity) {
+                    throw ValidationException::withMessages([
+                        'product' => "Not enough stock {$product->name}"
+                    ]);
                 }
+            }
 
 
-            foreach($order->items as $item)
+            foreach ($order->items as $item) 
                 {
                     $product = $products->get($item->product_id);
+                    $quantityBefore = $product->quantity;
+                    $quantityChange = -$item->quantity;
+                    $quantityAfter = $quantityBefore + $quantityChange;
+                    $product->inventoryHistories()->create([
+                        "order_id" => $order->id,
+                        "created_by" => auth()->id(),
+                        "quantity_before" => $quantityBefore,
+                        "quantity_change" => $quantityChange,
+                        "quantity_after" => $quantityAfter,
+                        "type" => "order_confirmed"
+                    ]);
                     $product->decrement('quantity', $item->quantity);
-                }
+            }
 
             $order->update([
                 'status' => OrderStatus::CONFIRMED,
@@ -214,16 +213,33 @@ class OrderService
         return $order->fresh();
     }
 
-    public function cancelConfirmed(Order $order): Order
+    public function cancelConfirmed(Order $order, string $reason): Order
     {
-        
-        $order->load('items.product');
-        return DB::transaction(function () use ($order) {
 
-            foreach($order->items as $item)
-                {
-                    $item->product->increment('quantity', $item->quantity); 
-                }
+        $order->load('items.product');
+
+        return DB::transaction(function () use ($order, $reason) {
+            $productIds = collect($order->items)->pluck('product_id')->unique();
+    
+            $products = Product::query()
+                ->whereIn('id', $productIds)
+                ->lockForUpdate()
+                ->get()->keyBy('id');
+
+            foreach ($order->items as $item) {
+
+                $quantity = $item->quantity;
+                $product = $products->get($item->product->id);
+                $product->inventoryHistories()->create([
+                    'quantity_before' => $product->quantity,
+                    "quantity_change" => +$item->quantity,
+                    "created_by" => auth()->id(),
+                    "quantity_after" => $product->quantity + $item->quantity,
+                    "type" => "order_cancelled",
+                    "note" => $reason
+                ]);
+                $product->increment('quantity', $item->quantity);
+            }
             $order->update([
                 'cancelled_by' => auth()->id(),
                 'status' => OrderStatus::CANCELLED,
@@ -231,7 +247,6 @@ class OrderService
             ]);
             return $order->fresh('items.product');
         });
-        
     }
 
     public function complete(Order $order)

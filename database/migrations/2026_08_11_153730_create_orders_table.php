@@ -17,6 +17,10 @@ return new class extends Migration
             $table->foreignId('created_by')->constrained('users')->restrictOnDelete();
             $table->foreignId('confirmed_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->foreignId('cancelled_by')->nullable()->constrained('users')->restrictOnDelete();
+             $table->foreignId('completed_by')
+            ->nullable()
+            ->constrained('users')
+            ->restrictOnDelete();
             $table->string('order_number')->unique()->nullable();
             $table->decimal('total_amount', 15, 2)->default(0);
             $table->timestamp('confirmed_at')->nullable();

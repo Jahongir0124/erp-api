@@ -4,7 +4,9 @@
 namespace app\Services;
 
 use App\DTOs\UserData;
+use App\Http\Requests\User\UserRequest;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class UserService
@@ -47,24 +49,38 @@ class UserService
         User::withTrashed()->findOrFail($id)->forceDelete();
     }
 
-    public function index($data)
+    public function index(UserRequest $request)
     {
-        $query = User::query();
+        $query = User::query()
+            ->with('roles');
 
-        if ($data->filled('search')) {
-            $query->where('name', 'like', '%' . $data->search . '%')
-                ->orWhere('email', 'like', '%' . $data->search . '%');
+
+        
+        if ($request->filled('search')) {
+            
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas("roles", function ($q) use($search){
+                        $q->where('name', 'like', "%{$search}%");
+                    });
+            });
         }
 
-        if ($data->filled('role')) {
-            $query->role($data->role);
-        }
+        if ($request->filled('role'))
+            {
+                $query->whereHas('roles', function ($q) use ($request) {
+                    $q->where('name', $request->role);
+                });
+            }
 
-        if ($data->filled('status')) {
-            $query->where('status', $data->status);
-        }
-
-
-        return $query->with('roles')->latest()->paginate(10);
+        if ($request->filled('status'))
+            {
+                $query->where('status', $request->status);
+            }
+        $sort = $request->get('sort', 'desc');
+        $query->orderBy('created_at', $sort);
+        return $query->paginate(10);
     }
 }
