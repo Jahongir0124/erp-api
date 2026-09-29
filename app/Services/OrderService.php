@@ -255,7 +255,6 @@ class OrderService
             'completed_at' => now(),
             'status' => OrderStatus::COMPLETED
         ]);
-
         return $order->fresh();
     }
 }

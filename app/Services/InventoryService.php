@@ -58,4 +58,10 @@ class InventoryService
 
         return $query->latest()->paginate(10);
     }
+
+
+    public function adjust(Product $product, array $data)
+    {
+       
+    }
 }

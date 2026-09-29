@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Inventory\InventoryAdjustmentRequest;
 use App\Http\Requests\Inventory\InventoryRequest;
 use App\Http\Resources\InventoryResource;
+use App\Models\Product;
 use App\Services\InventoryService;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controllers\HasMiddleware;
@@ -30,4 +32,15 @@ class InventoryController extends Controller implements HasMiddleware
         $inventories = $this->inventoryService->index($request);
         return InventoryResource::collection($inventories);
     }
+
+    public function adjust(Product $product, InventoryAdjustmentRequest $request)
+    {
+        $this->authorize('adjust', $product);
+        $this->inventoryService->adjust($product, $request->validated());
+
+        return response()->json([
+            'msg' => 'success',
+            201
+        ]);
+    }   
 }

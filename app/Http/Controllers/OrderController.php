@@ -66,6 +66,9 @@ class OrderController extends Controller implements HasMiddleware
 
     public function show(Order $order)
     {
+
+
+        $this->authorize('view', $order);
         $order->load([
             'customer:id,name',
             "creator:id,name",
