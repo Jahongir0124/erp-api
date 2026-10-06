@@ -35,6 +35,7 @@ class InventoryController extends Controller implements HasMiddleware
 
     public function adjust(Product $product, InventoryAdjustmentRequest $request)
     {
+       
         $this->authorize('adjust', $product);
         $this->inventoryService->adjust($product, $request->validated());
 

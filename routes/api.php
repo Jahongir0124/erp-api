@@ -3,16 +3,17 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryHistoryController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductImageController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
-
-
+use SebastianBergmann\CodeCoverage\Report\Xml\Report;
 
 Route::prefix('auth')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
@@ -102,6 +103,66 @@ Route::middleware('auth:sanctum')->group(function () {
         [OrderController::class, 'complete']
     );
 });
+
+Route::middleware('auth:sanctum')->group(function() {
+    Route::post('inventory/{product}/addjust', [InventoryController::class, 'adjust']);
+    Route::get('dashboard/', [DashboardController::class, 'index']);
+});
+
+Route::middleware('auth:sanctum')->prefix('report/')->group(function () {
+    Route::get('sales/', [ReportController::class, 'sales_report']);
+    Route::get('orders', [ReportController::class, 'orders']);
+    Route::get('inventory/', [ReportController::class, 'inventory']);
+    Route::get('products/', [ReportController::class, 'products']);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

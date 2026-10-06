@@ -23,12 +23,12 @@ class CustomerStoreRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            'phone_number' => ['required', 'string', 'max:30'],
+            'name' => ['nullable', 'string', 'max:255'],
+            'phone_number' => ['nullable', 'string', 'max:30'],
             'email' => ['nullable', 'string', 'unique:customers'],
-            'address' => ['required', 'string', 'max:255'],
+            'address' => ['nullable', 'string', 'max:255'],
             'company' => ['nullable', 'string', 'max:300'],
-            'notes' => ['nullable', 'string']
+            
         ];
     }
 }

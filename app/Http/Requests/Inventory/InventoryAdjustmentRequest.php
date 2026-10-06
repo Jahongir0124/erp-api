@@ -12,7 +12,7 @@ class InventoryAdjustmentRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return false;
+        return true;
     }
 
     /**
@@ -23,7 +23,8 @@ class InventoryAdjustmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            //
+            'quantity' => ['required', 'integer', 'not_in:0'],
+            'reason' => ['required', 'string', 'max:500'],
         ];
     }
 }

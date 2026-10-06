@@ -9,6 +9,8 @@ namespace app\Services;
 use App\Http\Requests\Inventory\InventoryRequest;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 
 class InventoryService
@@ -62,6 +64,48 @@ class InventoryService
 
     public function adjust(Product $product, array $data)
     {
+       $quantity = $data['quantity'];
+       $reason = $data['reason'];
+
+
+       return DB::transaction(function () use ($product, $quantity, $reason) {
+
+            $product = Product::query()
+                ->whereKey($product->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+
+            $quantityBefore = $product->quantity;
+            $quantityAfter = $quantityBefore + $quantity;
+
+            if ($quantityAfter < 0) {
+                throw ValidationException::withMessages([
+                    'quantity' => 'Stock quantity cannot be negative'
+                ]);
+            }
+
+
+            $product->update([
+                'quantity' => $quantityAfter
+            ]);
+
+
+            $product->inventoryHistories()->create([
+                'order_id' => null,
+                'created_by' => auth()->id(),
+                'quantity_before' => $quantityBefore,
+                'quantity_change' => $quantity,
+                'quantity_after' => $quantityAfter,
+                'type' => 'manual_adjustment',
+                'note' => $reason
+            ]);
+
+
+            return $product->fresh();
+       });
+
+
        
     }
 }

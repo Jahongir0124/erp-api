@@ -37,9 +37,9 @@ class OrderTest extends TestCase
     {
         $this->seed();
         $seller = User::factory()->create();
-      
+
         $seller->assignRole('seller');
-        
+
         $response = $this->actingAs($seller)->getJson('/api/orders');
 
         $response->assertOk();
@@ -83,7 +83,6 @@ class OrderTest extends TestCase
             $order1->id,
             $response2->json('data.0.id')
         );
-
     }
 
 
@@ -109,8 +108,6 @@ class OrderTest extends TestCase
         $response = $this->actingAs($seller1)->getJson("/api/orders/{$order->id}");
 
         $response->assertForbidden();
-
-
     }
 
     public function test_seller_can_update_self_pending_order(): void
@@ -119,7 +116,7 @@ class OrderTest extends TestCase
         $seller = User::factory()->create();
         $customer = Customer::factory()->create();
         $seller->assignRole('seller');
-      
+
 
         $product = Product::factory()->create([
             'quantity' => 100
@@ -156,9 +153,6 @@ class OrderTest extends TestCase
             'product_id' => $product->id,
             'quantity' => 5
         ]);
-
-
-
     }
 
 
@@ -195,15 +189,15 @@ class OrderTest extends TestCase
 
 
         $response = $this->actingAs($seller2)
-                    ->patchJson("/api/orders/{$order->id}", [
-                        'customer_id' => $customer->id,
-                        'items' => [
-                            [
-                                'product_id' => $product->id,
-                                'quantity' => 15
-                            ],
-                        ],
-                    ]);
+            ->patchJson("/api/orders/{$order->id}", [
+                'customer_id' => $customer->id,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 15
+                    ],
+                ],
+            ]);
 
         $response->assertForbidden();
     }
@@ -243,15 +237,15 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->actingAs($seller)
-                ->patchJson("/api/orders/{$order->id}", [
-                    'customer_id' => $customer->id,
-                    'items' => [
-                        [
-                            'product_id' => $product->id,
-                            'quantity' => 30
-                        ],
-                    ]
-                ]);
+            ->patchJson("/api/orders/{$order->id}", [
+                'customer_id' => $customer->id,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 30
+                    ],
+                ]
+            ]);
 
         $response->assertForbidden();
     }
@@ -274,20 +268,20 @@ class OrderTest extends TestCase
         ]);
 
         $response = $this->actingAs($seller)
-                ->postJson("/api/orders", [
-                    
-                    'customer_id' => $customer->id,
-                    'items' => [
-                        [
-                            'product_id' => $product1->id,
-                            'quantity' => 20
-                        ],
-                        [
-                            'product_id' => $product2->id,
-                            'quantity' => 30
-                        ]
+            ->postJson("/api/orders", [
+
+                'customer_id' => $customer->id,
+                'items' => [
+                    [
+                        'product_id' => $product1->id,
+                        'quantity' => 20
+                    ],
+                    [
+                        'product_id' => $product2->id,
+                        'quantity' => 30
                     ]
-                ]);
+                ]
+            ]);
 
         $response->assertCreated();
         $order = Order::latest()->first();
@@ -333,16 +327,108 @@ class OrderTest extends TestCase
         ]);
 
         $order->items()->create([
-            
+
             'product_id' => $product->id,
             'price' => $product->price,
             'quantity' => 10,
             'subtotal' => $product->price * 10
         ]);
 
-        
+        $response = $this
+            ->actingAs($manager)
+            ->patchJson("/api/orders/{$order->id}/confirm");
+
+        $response->assertOk();
+
+        //Order
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::CONFIRMED->value,
+            'confirmed_by' => $manager->id
+        ]);
+
+        //Stock
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'quantity' => 190
+        ]);
+
+        //Inventory History
+
+        $this->assertDatabaseHas('inventory_histories', [
+
+            'product_id' => $product->id,
+            'order_id' => $order->id,
+            'created_by' => $manager->id,
+            'quantity_before' => 200,
+            'quantity_change' => -10,
+            'quantity_after' => 190,
+            'type' => 'order_confirmed'
+        ]);
 
 
+        //confirmed_at
 
+        $order->refresh();
+        $this->assertNotNull($order->confirmed_at);
+    }
+
+
+    public function test_manager_cannot_confirm_order_with_insufficient_stock(): void
+    {
+        $this->seed();
+
+        $seller = User::factory()->create();
+        $manager = User::factory()->create();
+
+        $seller->assignRole('seller');
+        $manager->assignRole('manager');
+
+        $customer = Customer::factory()->create();
+        $product = Product::factory()->create([
+            'quantity' => 10
+        ]);
+        $order = Order::create([
+            'created_by' => $seller->id,
+            'customer_id' => $customer->id
+        ]);
+
+        $order->items()->create([
+
+            'product_id' => $product->id,
+            'price' => $product->price,
+            'quantity' => 15,
+            'subtotal' => $product->price * 15
+        ]);
+
+        $response = $this
+            ->actingAs($manager)
+            ->patchJson("/api/orders/{$order->id}/confirm");
+
+        $response->assertUnprocessable();
+
+        //Order
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'status' => OrderStatus::PENDING->value,
+            'confirmed_by' => null
+        ]);
+
+        //Stock
+
+        $this->assertDatabaseHas('products', [
+            'id' => $product->id,
+            'quantity' => 10
+        ]);
+
+        //Inventory
+
+        $this->assertDatabaseMissing('inventory_histories', [
+            'order_id' => $order->id,
+            'type' => 'order_confirmed',
+        ]);
     }
 }
