@@ -431,4 +431,58 @@ class OrderTest extends TestCase
             'type' => 'order_confirmed',
         ]);
     }
+
+    public function test_cannot_create_order_with_invalid_data(): void
+    {
+        $this->seed();
+
+        $seller = User::factory()->create();
+        $seller->assignRole('seller');
+
+        $response = $this
+            ->actingAs($seller)
+            ->postJson('/api/orders', [
+                'customer_id' => 999999,
+                'items' => [
+                    [
+                        'product_id' => 999999,
+                        'quantity' => 0,
+                    ],
+                ],
+            ]);
+
+        $response->assertUnprocessable();
+    }
+
+    public function test_seller_cannot_cancel_confirmed_order(): void
+    {
+        $this->seed();
+
+        $seller = User::factory()->create();
+        $manager = User::factory()->create();
+
+        $seller->assignRole('seller');
+        $manager->assignRole('manager');
+
+        $customer = Customer::factory()->create();
+
+        $order = Order::create([
+            'created_by' => $seller->id,
+            'customer_id' => $customer->id,
+        ]);
+
+        $order->update([
+            'status' => OrderStatus::CONFIRMED,
+            'confirmed_by' => $manager->id,
+            'confirmed_at' => now(),
+        ]);
+
+        $response = $this
+            ->actingAs($seller)
+            ->patchJson("/api/orders/{$order->id}/cancel-confirmed", [
+                'reason' => 'Customer requested cancellation',
+            ]);
+
+        $response->assertForbidden();
+    }
 }
